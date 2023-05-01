@@ -10,4 +10,5 @@ add_subdirectory(Lesson_01)
 add_subdirectory(Lesson_02)
 add_subdirectory(Lesson_03)
 add_subdirectory(Lesson_04)
+add_subdirectory(Lesson_05)
 
