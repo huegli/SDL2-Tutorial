@@ -78,7 +78,7 @@ bool loadMedia()
 
     //Load default surface
     gKeyPressSurfaces[ KEY_PRESS_SURFACE_DEFAULT ] = loadSurface ( "Lesson_04/press.bmp" );
-    if ( gKeyPressSurfaces == NULL )
+    if ( gKeyPressSurfaces[ KEY_PRESS_SURFACE_DEFAULT ] == NULL )
     {
         printf( "Failed to load default image!\n" );
         success = false;
@@ -86,7 +86,7 @@ bool loadMedia()
 
     //Load up surface
     gKeyPressSurfaces[ KEY_PRESS_SURFACE_UP ] = loadSurface ( "Lesson_04/up.bmp" );
-    if ( gKeyPressSurfaces == NULL )
+    if ( gKeyPressSurfaces[ KEY_PRESS_SURFACE_UP ] == NULL )
     {
         printf( "Failed to load default image!\n" );
         success = false;
@@ -94,7 +94,7 @@ bool loadMedia()
 
     //Load down surface
     gKeyPressSurfaces[ KEY_PRESS_SURFACE_DOWN ] = loadSurface ( "Lesson_04/down.bmp" );
-    if ( gKeyPressSurfaces == NULL )
+    if ( gKeyPressSurfaces[ KEY_PRESS_SURFACE_DOWN ] == NULL )
     {
         printf( "Failed to load default image!\n" );
         success = false;
@@ -102,7 +102,7 @@ bool loadMedia()
 
     //Load left surface
     gKeyPressSurfaces[ KEY_PRESS_SURFACE_LEFT ] = loadSurface ( "Lesson_04/left.bmp" );
-    if ( gKeyPressSurfaces == NULL )
+    if ( gKeyPressSurfaces[ KEY_PRESS_SURFACE_LEFT ] == NULL )
     {
         printf( "Failed to load default image!\n" );
         success = false;
@@ -110,7 +110,7 @@ bool loadMedia()
 
     //Load right surface
     gKeyPressSurfaces[ KEY_PRESS_SURFACE_RIGHT ] = loadSurface ( "Lesson_04/right.bmp" );
-    if ( gKeyPressSurfaces == NULL )
+    if ( gKeyPressSurfaces[ KEY_PRESS_SURFACE_RIGHT ] == NULL )
     {
         printf( "Failed to load default image!\n" );
         success = false;
@@ -174,7 +174,7 @@ int main(int argc, char *argv[])
             {
                 //Apply the image
                 SDL_BlitSurface( gCurrentSurface, NULL, gScreenSurface, NULL);
-                
+
                 //Update the surface
                 SDL_UpdateWindowSurface( gWindow );
 
