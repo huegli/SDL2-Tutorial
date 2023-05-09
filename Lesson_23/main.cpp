@@ -1,10 +1,11 @@
 // Using SDL, SDL_image, standard IO, and strings
 #include <SDL.h>
 #include <SDL_image.h>
-#include <SDL_mixer.h>
-#include <ctime>
+#include <SDL_render.h>
+#include <SDL_ttf.h>
 #include <stdio.h>
 #include <string>
+#include <sstream>
 
 // Screen dimension constants
 const int SCREEN_WIDTH = 640;
@@ -31,6 +32,9 @@ class LTexture
 
     //Loads image at specified path
     bool loadFromFile( std::string path );
+
+    //Creates image from font string
+    bool loadFromRenderedText( std::string textureText, SDL_Color textColor );
 
     //Deallocate texture
     void free();
@@ -60,23 +64,51 @@ class LTexture
     int mHeight;
 };
 
+//The application time based timer
+class LTimer
+{
+  public:
+    //Initializes variables
+    LTimer();
+
+    //The various clock actions
+    void start();
+    void stop();
+    void pause();
+    void unpause();
+
+    //Gets the timer's time
+    Uint32 getTicks();
+
+    //Checks the status of the timer
+    bool isStarted();
+    bool isPaused();
+
+  private:
+    //The clock time when the timer started
+    Uint32 mStartTicks;
+
+    //The ticks stored when the timer was paused
+    Uint32 mPausedTicks;
+
+    //The timer status
+    bool mPaused;
+    bool mStarted;
+};
+
 // The window we'll be rendering to
 SDL_Window *gWindow = NULL;
 
 // The window renderer
 SDL_Renderer *gRenderer = NULL;
 
-//The music that will be played
-Mix_Music *gMusic = NULL;
+//Globally used font
+TTF_Font* gFont = NULL;
 
-//The sound effects that will be used
-Mix_Chunk *gScratch = NULL;
-Mix_Chunk *gHigh = NULL;
-Mix_Chunk *gMedium = NULL;
-Mix_Chunk *gLow = NULL;
-
-//Walking animation
-LTexture gPromptTexture;
+//Rendered texture
+LTexture gStartPromptTextTexture;
+LTexture gPausePromptTextTexture;
+LTexture gTimeTextTexture;
 
 LTexture::LTexture()
 {
@@ -110,7 +142,7 @@ bool LTexture::loadFromFile( std::string path )
   {
     //Color key image
     SDL_SetColorKey( loadedSurface, SDL_TRUE, SDL_MapRGB( loadedSurface->format, 0, 0xFF, 0xFF  ) );
-
+    
     //Create texture from surface pixels
     newTexture = SDL_CreateTextureFromSurface( gRenderer, loadedSurface );
     if( newTexture == NULL )
@@ -131,6 +163,40 @@ bool LTexture::loadFromFile( std::string path )
   //Return success
   mTexture = newTexture;
   return mTexture != NULL;
+}
+
+bool LTexture::loadFromRenderedText( std::string textureText, SDL_Color textColor )
+{
+  //Get rid of preexisting texture
+  free();
+
+  //Render text surface
+  SDL_Surface* textSurface = TTF_RenderText_Solid( gFont, textureText.c_str(), textColor );
+  if( textSurface == NULL )
+  {
+    printf( "Unable to render text surface! SDL_ttf Error: %s\n", TTF_GetError() );
+  }
+  else {
+    //Create texture from surface pixels
+    mTexture = SDL_CreateTextureFromSurface( gRenderer, textSurface );
+    if( mTexture == NULL)
+    {
+      printf( "Unable to create texture from rendered text! SDL Error: %s\n", SDL_GetError() );
+    }
+    else
+    {
+      //Get image dimensions
+      mWidth = textSurface->w;
+      mHeight = textSurface->h;
+    }
+
+    //Get rid of old surface
+    SDL_FreeSurface( textSurface );
+  }
+
+  //Return success
+  return mTexture != NULL;
+
 }
 
 void LTexture::free()
@@ -187,13 +253,114 @@ int LTexture::getHeight()
   return mHeight;
 }
 
+LTimer::LTimer()
+{
+  //Initialize the variables
+  mStartTicks = 0;
+  mPausedTicks = 0;
+
+  mPaused = false;
+  mStarted = false;
+}
+
+void LTimer::start()
+{
+  //Start the timer
+  mStarted = true;
+
+  //Unpause the timer
+  mPaused = false;
+
+  //Get the current clock time
+  mStartTicks = SDL_GetTicks();
+  mPausedTicks = 0;
+}
+
+void LTimer::stop()
+{
+  //Stop the timer
+  mStarted = false;
+
+  //Unpause the timer
+  mPaused = false;
+
+  //Clear tick variables
+  mStartTicks = 0;
+  mPausedTicks = 0;
+}
+
+void LTimer::pause()
+{
+  //If the timer is running and isn't already paused
+  if( mStarted && !mPaused )
+  {
+    //Unpause the timer
+    mPaused = true;
+
+    //Reset the starting ticks
+    mPausedTicks = SDL_GetTicks() - mStartTicks;
+    mStartTicks = 0;
+  }
+}
+
+void LTimer::unpause()
+{
+  //If the timer is running and paused
+  if( mStarted && mPaused )
+  {
+    //Unpause the timer
+    mPaused = false;
+
+    //Reset the starting ticks
+    mStartTicks = SDL_GetTicks() - mPausedTicks;
+
+    //Reset the paused ticks
+    mPausedTicks = 0;
+  }
+}
+
+Uint32 LTimer::getTicks()
+{
+  //The actual timer time
+  Uint32 time = 0;
+
+  //If the timer is running
+  if( mStarted )
+  {
+    //If the timer is paused
+    if( mPaused )
+    {
+      //Return the number of ticks when the timer was paused
+      time = mPausedTicks;
+    }
+    else
+    {
+      //Return the current time minus the start time
+      time = SDL_GetTicks() - mStartTicks;
+    }
+  }
+
+  return time;
+}
+
+bool LTimer::isStarted()
+{
+  //Timer is running and paused or unpaused
+  return mStarted;
+}
+
+bool LTimer::isPaused()
+{
+  //Timer is running and paused
+  return mPaused && mStarted;
+}
 
 bool init() {
   // Initialization flag
   bool success = true;
 
   // Initialize SDL
-  if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO ) < 0) {
+  if (SDL_Init(SDL_INIT_VIDEO) < 0) {
     printf("SDL could not initialize! SDL Error: %s\n", SDL_GetError());
     success = false;
   } else {
@@ -202,7 +369,6 @@ bool init() {
     {
         printf( "Warning: Linear texture filtering not enabled!" );
     }
-
     // Create window
     gWindow = SDL_CreateWindow("SDL Tutorial", SDL_WINDOWPOS_UNDEFINED,
                                SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH,
@@ -230,11 +396,10 @@ bool init() {
             success = false;
           }
 
-          //Initialize SDL_mixer
-          if( Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0 )
+          //Initialize SDL_ttf
+          if( TTF_Init() == -1 )
           {
-            printf( "SDL_mixer could not initialize! SDL_mixer Error: %s\n",Mix_GetError() );
-            success = false;
+            printf( "SDL_ttf could not initialize! SDL_ttf Error %s\n", TTF_GetError() );
           }
       }
     }
@@ -247,69 +412,43 @@ bool loadMedia() {
   // Loading success flag
   bool success = true;
 
-  //Load sprite sheet texture
-  if( !gPromptTexture.loadFromFile( "Lesson_21/prompt.png"))
+  //Open the font
+  gFont = TTF_OpenFont( "Lesson_23/lazy.ttf", 28 );
+  if( gFont == NULL )
   {
-    printf("Failed to load arrow texture!\n");
+    printf( "Failed to load lazy font! SDL_ttf Error: %s\n", TTF_GetError() );
     success = false;
+  }
+  else
+  {
+    //Set text color as black
+    SDL_Color textColor = { 0, 0, 255 };
+
+    //Load prompt texture
+    if( !gStartPromptTextTexture.loadFromRenderedText( "Press S to Start or Stop the Timer.", textColor ) )
+    {
+      printf( "Unable to render prompt texture!\n" );
+      success = false;
+    }
+    if( !gPausePromptTextTexture.loadFromRenderedText( "Press P to Pause or Unpause the Timer.", textColor ) )
+    {
+      printf( "Unable to render prompt texture!\n" );
+      success = false;
+    }
   }
 
-  //Load music
-  gMusic = Mix_LoadMUS( "Lesson_21/beat.wav");
-  if( gMusic == NULL )
-  {
-    printf( "Failed to load beat music! SDL_mixer Error: %s\n",Mix_GetError() );
-    success = false;
-  }
-  
-  //Load sound effects
-  gScratch = Mix_LoadWAV( "Lesson_21/scratch.wav");
-  if( gScratch == NULL )
-  {
-    printf( "Failed to load scratch sound effect! SDL_mixer Error: %s\n",Mix_GetError() );
-    success = false;
-  }
-
-  gHigh = Mix_LoadWAV( "Lesson_21/high.wav");
-  if( gHigh == NULL )
-  {
-    printf( "Failed to load high sound effect! SDL_mixer Error: %s\n",Mix_GetError() );
-    success = false;
-  }
-
-  gMedium = Mix_LoadWAV( "Lesson_21/medium.wav");
-  if( gMedium == NULL )
-  {
-    printf( "Failed to load medium sound effect! SDL_mixer Error: %s\n",Mix_GetError() );
-    success = false;
-  }
-
-  gLow = Mix_LoadWAV( "Lesson_21/low.wav");
-  if( gLow == NULL )
-  {
-    printf( "Failed to load low sound effect! SDL_mixer Error: %s\n",Mix_GetError() );
-    success = false;
-  }
   return success;
 }
 
 void close() {
   // Free loaded image
-  gPromptTexture.free();
+  gStartPromptTextTexture.free();
+  gPausePromptTextTexture.free();
+  gTimeTextTexture.free();
 
-  //Free the sound effects
-  Mix_FreeChunk( gScratch );
-  Mix_FreeChunk( gHigh );
-  Mix_FreeChunk( gMedium );
-  Mix_FreeChunk( gLow );
-  gScratch = NULL;
-  gHigh = NULL;
-  gMedium = NULL;
-  gLow = NULL;
-
-  //Free the music
-  Mix_FreeMusic( gMusic );
-  gMusic = NULL;
+  //Free global font
+  TTF_CloseFont( gFont );
+  gFont = NULL;
 
   // Destroy window
   SDL_DestroyRenderer( gRenderer );
@@ -318,7 +457,7 @@ void close() {
   gRenderer = NULL;
 
   // Quit SDL subsystems
-  Mix_Quit();
+  TTF_Quit();
   IMG_Quit();
   SDL_Quit();
 }
@@ -338,6 +477,15 @@ int main(int argc, char *args[]) {
       // Event handler
       SDL_Event e;
 
+      //Set text color as black
+      SDL_Color textColor = { 0, 0, 255 };
+
+      //The application timer
+      LTimer timer;
+
+      //In memory text stream
+      std::stringstream timeText;
+      
       // While application is running
       while (!quit) {
         // Handle events on queue
@@ -346,70 +494,54 @@ int main(int argc, char *args[]) {
           if (e.type == SDL_QUIT) {
             quit = true;
           }
-          else if ( e.type == SDL_KEYDOWN )
+          //Reset start time on return keypress
+          else if( e.type == SDL_KEYDOWN )
           {
-            switch( e.key.keysym.sym )
+            //Start/stop
+            if( e.key.keysym.sym == SDLK_s )
             {
-              //Play high sound effect
-              case SDLK_1:
-                Mix_PlayChannel( - 1, gHigh, 0 );
-                break;
-
-              //Play medium sound effect
-              case SDLK_2:
-                Mix_PlayChannel( - 1, gMedium, 0 );
-                break;
-
-              //Play low sound effect
-              case SDLK_3:
-                Mix_PlayChannel( - 1, gLow, 0 );
-                break;
-
-              //Play scratch sound effect
-              case SDLK_4:
-                Mix_PlayChannel( - 1, gScratch, 0 );
-                break;
-
-              case SDLK_9:
-              //If there is no music playing
-              if( Mix_PlayingMusic() == 0 )
+              if( timer.isStarted() )
               {
-                // Play the music
-                Mix_PlayMusic( gMusic, -1 );
+                timer.stop();
               }
-              //If music is being played
               else
               {
-                //If the music is paused
-                if( Mix_PausedMusic() == 1 )
-                {
-                  //Resume the music
-                  Mix_ResumeMusic();
-                }
-                //If the music is playing
-                else
-                {
-                  //Pause the music
-                  Mix_PauseMusic();
-                }
+                timer.start();
               }
-              break;
-
-              case SDLK_0:
-              //Stop the music
-              Mix_HaltMusic();
-              break;
+            }
+            //Pause/unpause
+            else if( e.key.keysym.sym == SDLK_p )
+            {
+              if( timer.isPaused() )
+              {
+                timer.unpause();
+              }
+              else
+              {
+                timer.pause();
+              }
             }
           }
+        }
+
+        //Set text to be rendered
+        timeText.str( "" );
+        timeText << "Seconds since start time " << ( timer.getTicks() / 1000.f );
+
+        //Render text
+        if( !gTimeTextTexture.loadFromRenderedText( timeText.str().c_str(), textColor ) )
+        {
+          printf( "Unable to render time texture!\n" );
         }
 
         //Clear screen
         SDL_SetRenderDrawColor( gRenderer, 0xFF, 0xFF, 0xFF, 0xFF );
         SDL_RenderClear( gRenderer );
 
-        //Render joystick 7 way angle
-        gPromptTexture.render( ( SCREEN_WIDTH - gPromptTexture.getWidth() ) / 2, ( SCREEN_HEIGHT - gPromptTexture.getHeight() ) / 2, NULL, 0 );
-
+        //Render current frame
+        gStartPromptTextTexture.render( ( SCREEN_WIDTH - gStartPromptTextTexture.getWidth() ) / 2, 0 );
+        gPausePromptTextTexture.render( ( SCREEN_WIDTH - gPausePromptTextTexture.getWidth() ) / 2, gStartPromptTextTexture.getHeight() );
+        gTimeTextTexture.render( ( SCREEN_WIDTH - gTimeTextTexture.getWidth() ) / 2, ( SCREEN_HEIGHT - gTimeTextTexture.getHeight() ) / 2 );
         // Update screen
         SDL_RenderPresent( gRenderer );
 
