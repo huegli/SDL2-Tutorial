@@ -22,6 +22,13 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(SDL_ttf)
 
+FetchContent_Declare(
+  SDL_mixer
+  GIT_REPOSITORY https://github.com/libsdl-org/SDL_mixer
+  GIT_TAG        release-2.6.3
+)
+FetchContent_MakeAvailable(SDL_mixer)
+
 add_subdirectory(Lesson_01)
 add_subdirectory(Lesson_02)
 add_subdirectory(Lesson_03)
@@ -42,3 +49,4 @@ add_subdirectory(Lesson_17)
 add_subdirectory(Lesson_18)
 add_subdirectory(Lesson_19)
 add_subdirectory(Lesson_20)
+add_subdirectory(Lesson_21)
