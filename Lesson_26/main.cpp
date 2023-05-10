@@ -1,7 +1,7 @@
 // Using SDL, SDL_image, standard IO, and strings
 #include <SDL.h>
 #include <SDL_image.h>
-#include <SDL_ttf.h>
+#include <cmath>
 #include <stdio.h>
 #include <string>
 #include <sstream>
@@ -97,17 +97,45 @@ class LTimer
     bool mStarted;
 };
 
+//The dot that will move around on the screen
+class Dot 
+{
+  public:
+    //The dimension of the dot
+    static const int DOT_WIDTH = 20;
+    static const int DOT_HEIGHT = 20;
+
+    //Maximum axis velocity of the dot
+    static const int DOT_VEL = 10;
+
+    //Initializes the variables
+    Dot();
+
+    //Takes key presses and adjusts the dot's velocity
+    void handleEvent( SDL_Event& e );
+
+    //Moves the dot
+    void move();
+
+    //Shows the dot on the screen
+    void render();
+
+  private:
+    //The X and Y offsets of the dot
+    int mPosX, mPosY;
+
+    //The velocity of the dot
+    int mVelX, mVelY;
+};
+
 // The window we'll be rendering to
 SDL_Window *gWindow = NULL;
 
 // The window renderer
 SDL_Renderer *gRenderer = NULL;
 
-//Globally used font
-TTF_Font* gFont = NULL;
-
 //Rendered texture
-LTexture gTimeTextTexture;
+LTexture gDotTexture;
 
 LTexture::LTexture()
 {
@@ -354,6 +382,18 @@ bool LTimer::isPaused()
   return mPaused && mStarted;
 }
 
+Dot::Dot()
+{
+  //Initialize the offsets
+  mPosX = 0;
+  mPosY = 0;
+
+  //Initialize the velocity
+  mVelX = 0;
+  mVelY = 0;
+}
+
+
 bool init() {
   // Initialization flag
   bool success = true;
@@ -430,7 +470,7 @@ bool loadMedia() {
 
 void close() {
   // Free loaded image
-  gTimeTextTexture.free();
+  gDotTexture.free();
 
   //Free global font
   TTF_CloseFont( gFont );
@@ -504,7 +544,7 @@ int main(int argc, char *args[]) {
         timeText << "Average Frames Per Second " << avgFPS;
 
         //Render text
-        if( !gTimeTextTexture.loadFromRenderedText( timeText.str().c_str(), textColor ) )
+        if( !gDotTexture.loadFromRenderedText( timeText.str().c_str(), textColor ) )
         {
           printf( "Unable to render time texture!\n" );
         }
@@ -514,7 +554,7 @@ int main(int argc, char *args[]) {
         SDL_RenderClear( gRenderer );
 
         //Render current frame
-        gTimeTextTexture.render( ( SCREEN_WIDTH - gTimeTextTexture.getWidth() ) / 2, ( SCREEN_HEIGHT - gTimeTextTexture.getHeight() ) / 2 );
+        gDotTexture.render( ( SCREEN_WIDTH - gDotTexture.getWidth() ) / 2, ( SCREEN_HEIGHT - gDotTexture.getHeight() ) / 2 );
         // Update screen
         SDL_RenderPresent( gRenderer );
         ++countedFrames;
