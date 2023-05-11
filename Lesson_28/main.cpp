@@ -361,8 +361,8 @@ bool LTimer::isPaused() {
 
 Dot::Dot( int x, int y ) {
   // Initialize the offsets
-  mPosX = 0;
-  mPosY = 0;
+  mPosX = x;
+  mPosY = y;
 
   //Crate the necessary SDL_Rects
   mColliders.resize( 11 );
@@ -403,7 +403,7 @@ Dot::Dot( int x, int y ) {
   mColliders[ 9 ].h = 1;
 
   mColliders[ 10 ].w = 6;
-  mColliders[ 10 ].h = 2;
+  mColliders[ 10 ].h = 1;
 
   //Initialize colliders relative to position
   shiftColliders();
@@ -448,30 +448,54 @@ void Dot::handleEvent(SDL_Event &e) {
   }
 }
 
-void Dot::move(SDL_Rect &wall) {
+void Dot::move( std::vector<SDL_Rect>& otherColliders ) {
   // Move the dot left or right
   mPosX += mVelX;
-  mCollider.x = mPosX;
+  shiftColliders();
 
   // If the dot collided or went too far to the left or right
-  if ((mPosX < 0) || (mPosX + DOT_WIDTH > SCREEN_WIDTH) || checkCollision(mCollider, wall))
+  if ((mPosX < 0) || (mPosX + DOT_WIDTH > SCREEN_WIDTH) || checkCollision(mColliders, otherColliders))
   {
     // Move back
     mPosX -= mVelX;
-    mCollider.x = mPosX;
+    shiftColliders();
   }
 
   // Move the dot up or down
   mPosY += mVelY;
-  mCollider.y = mPosY;
+  shiftColliders();
 
   // If the dot collided or went too far up or down
-  if ( ( mPosY < 0) || (mPosY + DOT_HEIGHT > SCREEN_HEIGHT) || checkCollision(mCollider, wall))
+  if ( ( mPosY < 0) || (mPosY + DOT_HEIGHT > SCREEN_HEIGHT) || checkCollision(mColliders, otherColliders))
   {
     // Move back
     mPosY -= mVelY;
-    mCollider.y = mPosY;
+    shiftColliders();
   }
+}
+
+void Dot::shiftColliders()
+{
+  //The row offset
+  int r = 0;
+
+  //Go through the dot's collision boxes
+  for( int set = 0; set < mColliders.size(); ++set )
+  {
+    //Center the collision boxes
+    mColliders[ set ].x = mPosX + ( DOT_WIDTH - mColliders[ set ].w ) / 2;
+
+    //Set the collision box at its row offset
+    mColliders[ set ].y = mPosY + r;
+
+    //Move the row offset down the height of the collision box
+    r += mColliders[ set ].h;
+  }
+}
+
+std::vector<SDL_Rect>& Dot::getColliders()
+{
+  return mColliders;
 }
 
 void Dot::render() {
@@ -553,7 +577,7 @@ void close() {
   SDL_Quit();
 }
 
-bool checkCollision( SDL_Rect a, SDL_Rect b )
+bool checkCollision( std::vector<SDL_Rect>& a, std::vector<SDL_Rect>& b )
 {
   //The sides of the reectangles
   int leftA, leftB;
@@ -561,41 +585,34 @@ bool checkCollision( SDL_Rect a, SDL_Rect b )
   int topA, topB;
   int bottomA, bottomB;
 
-  //Calculate the sides of rect A 
-  leftA = a.x;
-  rightA = a.x + a.w;
-  topA = a.y;
-  bottomA = a.y + a.h;
-
-  //Calculate the sides of rect B 
-  leftB = b.x;
-  rightB = b.x + b.w;
-  topB = b.y;
-  bottomB = b.y + b.h;
-
-  //If any of the sides from A are outside of B 
-  if( bottomA < topB )
+  //Go through the A boxes
+  for( int Abox = 0; Abox < a.size(); Abox++ )
   {
-    return false;
-  }
+    //Calculate the sides of rect A
+    leftA = a[ Abox ].x;
+    rightA = a[ Abox ].x + a[ Abox ].w;
+    topA = a[ Abox ].y;
+    bottomA = a[ Abox ].y + a[ Abox ].h;
 
-  if( topA >= bottomB )
-  {
-    return false;
-  }
+    //Go through the B boxes
+    for( int Bbox = 0; Bbox < b.size(); Bbox++ )
+    {
+      //Calculate the sides of rect A
+      leftB = b[ Bbox ].x;
+      rightB = b[ Bbox ].x + b[ Bbox ].w;
+      topB = b[ Bbox ].y;
+      bottomB = b[ Bbox ].y + b[ Bbox ].h;
 
-  if( rightA <= leftB )
-  {
-    return false;
+      //If no sides from A are outside B
+      if( ( ( bottomA <= topB ) || ( topA >= bottomB ) || ( rightA <= leftB ) || ( leftB >= rightB ) ) == false )
+      {
+        //A collision is detected
+        return true;
+      }
+    }
   }
-
-  if( leftA >= rightB )
-  {
-    return false;
-  }
-
-  //If none of the sides from A are outside B 
-  return true;
+  //If neither set of collision boxes touched
+  return false;
 }
 
 int main(int argc, char *args[]) {
@@ -614,14 +631,10 @@ int main(int argc, char *args[]) {
       SDL_Event e;
 
       // The dot that will be moving around on the screen
-      Dot dot;
+      Dot dot( 0, 0);
 
-      //Set the wall
-      SDL_Rect wall;
-      wall.x =  300;
-      wall.y = 40;
-      wall.w = 40;
-      wall.h = 400;
+      //The dot that will be collided against
+      Dot otherDot( SCREEN_WIDTH / 4, SCREEN_HEIGHT / 4 );
 
       // While application is running
       while (!quit) {
@@ -637,18 +650,15 @@ int main(int argc, char *args[]) {
         }
 
         // Move the dot
-        dot.move( wall );
+        dot.move( otherDot.getColliders() );
 
         // Clear screen
         SDL_SetRenderDrawColor(gRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
         SDL_RenderClear(gRenderer);
 
-        // Render wall
-        SDL_SetRenderDrawColor(gRenderer, 0x00, 0x00, 0x00, 0xFF);
-        SDL_RenderDrawRect( gRenderer, &wall );
-
-        // Render objects
+        // Render dots
         dot.render();
+        otherDot.render();
 
         // Update screen
         SDL_RenderPresent(gRenderer);
@@ -661,3 +671,4 @@ int main(int argc, char *args[]) {
 
   return 0;
 }
+
