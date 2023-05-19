@@ -1,5 +1,6 @@
 // Using  SDL, SDL_image, standard IO, and strings
 #include <SDL.h>
+#include <SDL2/SDL_hints.h>
 #include <SDL_image.h>
 #include <stdio.h>
 #include <string>
@@ -15,9 +16,6 @@ const int TOTAL_WINDOWS = 3;
 
 // Starts up SDL and creates window
 bool init();
-
-// Loads media
-bool loadMedia();
 
 // Frees media and shuts down SDL
 void close();
@@ -374,23 +372,34 @@ SDL_Renderer* LWindow::createRenderer()
 
 void LWindow::handleEvent( SDL_Event& e )
 {
-  //Window event occurred
-  if( e.type == SDL_WINDOWEVENT )
+  //If an event was detected for this window
+  if( e.type == SDL_WINDOWEVENT && e.window.windowID == mWindowID )
   {
     //Caption update flag
     bool updateCaption = false;
     switch( e.window.event )
     {
-      //Get new dimensions and repaint on window size change
+      //Window appeared
+      case SDL_WINDOWEVENT_SHOWN:
+      mShown = true;
+      break;
+
+      //Window disappeared
+      case SDL_WINDOWEVENT_HIDDEN:
+      mShown = false;
+      break;
+        
+      //Get new dimensions and repaint
       case SDL_WINDOWEVENT_SIZE_CHANGED:
       mWidth = e.window.data1;
       mHeight = e.window.data2;
-      SDL_RenderPresent( gRenderer );
+      SDL_RenderPresent( mRenderer );
       break;
+
 
       //Repaint on exposure
       case SDL_WINDOWEVENT_EXPOSED:
-      SDL_RenderPresent( gRenderer );
+      SDL_RenderPresent( mRenderer );
       break;
 
       //Mouse entered window
@@ -430,6 +439,11 @@ void LWindow::handleEvent( SDL_Event& e )
       case SDL_WINDOWEVENT_RESTORED:
       mMinimized = false;
       break;
+
+      //Hide on close
+      case SDL_WINDOWEVENT_CLOSE:
+      SDL_HideWindow( mWindow );
+      break;
     }
     //Update window caption with new data
     if( updateCaption )
@@ -456,6 +470,30 @@ void LWindow::handleEvent( SDL_Event& e )
   }
 }
 
+void LWindow::focus()
+{
+  //Restore window is needed
+  if( !mShown )
+  {
+    SDL_ShowWindow( mWindow );
+  }
+
+  //Move window forward
+  SDL_RaiseWindow( mWindow );
+}
+
+void LWindow::render()
+{
+  if( !mMinimized )
+  {
+    //Clear screen
+    SDL_SetRenderDrawColor( mRenderer, 0xFF, 0xFF, 0xFF, 0xFF );
+    SDL_RenderClear( mRenderer );
+
+    //Uspdate screen
+    SDL_RenderPresent( mRenderer );
+  }
+}
 void LWindow::free()
 {
 	if( mWindow != NULL )
@@ -494,23 +532,33 @@ bool LWindow::isMinimized()
   return mMinimized;
 }
 
+bool LWindow::isShown()
+{
+	return mShown;
+}
+
 bool init() {
   // Initialization flag
   bool success = true;
 
-  //Create window
-  if ( !gWindow.init() )
+  //Initialize SDL
+  if( SDL_Init( SDL_INIT_VIDEO ) < 0 )
   {
-    printf(" Window could not be created! SDL Error: %s\n", SDL_GetError() );
+    printf( "SDL could not initialize! SDL Error: %s\n", SDL_GetError() );
     success = false;
   }
   else
   {
-    //Create renderer for window
-    gRenderer = gWindow.createRenderer();
-    if( gRenderer == NULL )
+    //Set texture filtering to linear
+    if( !SDL_SetHint( SDL_HINT_RENDER_SCALE_QUALITY, "1" ) )
+    { 
+      printf( "Warning: Linear texture filtering not enabled!" ); 
+    }
+
+    //CReate window
+    if( !gWindows[ 0 ].init() )
     {
-      printf( "Renderer could not be created! SDL Error: %s\n", SDL_GetError() );
+      printf( "Window 0 could not be created:\n" );
       success = false;
     }
   }
@@ -518,86 +566,95 @@ bool init() {
   return success;
 }
 
-bool loadMedia() {
- 
-  //Loading success flag
-  bool success = true;
-
-	//Load scene texture
-	if( !gSceneTexture.loadFromFile( "Lesson_36/window.png" ) )
-	{
-		printf( "Failed to load window texture!\n" );
-		success = false;
-	}
-
-	return success;
-}
-
 void close() {
 
-  //Free textures
-  gSceneTexture.free();
-  
-  // Destroy window
-  SDL_DestroyRenderer(gRenderer);
-  gWindow.free();
+  // Destroy windows
+  for( int i = 0; i < TOTAL_WINDOWS; ++i )
+  {
+    gWindows[ i ].free();
+  }
   
   // Quit SDL subsystems
   IMG_Quit();
   SDL_Quit();
 }
 
-int main(int argc, char *args[]) {
+int main(int argc, char *args[])
+{
   // Start up SDL and create window
   if (!init()) {
     printf("Failed to initialize!\n");
   } else {
-    // Load media
-    if (!loadMedia()) {
-      printf("Failed to load media!\n");
-    } else {
-      // Main loop flag
-      bool quit = false;
+    //Initialize the rest of the windows
+    for( int i = 1; i < TOTAL_WINDOWS; ++i )
+    {
+      gWindows[ i ].init();
+    }
+    
+    // Main loop flag
+    bool quit = false;
 
-      // Event handler
-      SDL_Event e;
+    // Event handler
+    SDL_Event e;
 
-      // While application is running
-      while (!quit) {
-        // The rerender text flag
-        bool renderText = false;
-
-        // Handle events on queue
-        while (SDL_PollEvent(&e) != 0) {
-          // User requests quit
-          if (e.type == SDL_QUIT) {
-            quit = true;
-          }
-
-          //Handle window event
-          gWindow.handleEvent( e );
+    // While application is running
+    while (!quit) {
+      // Handle events on queue
+      while (SDL_PollEvent(&e) != 0) {
+        // User requests quit
+        if (e.type == SDL_QUIT) {
+          quit = true;
         }
 
-        //Only draw when not minimized
-        if( !gWindow.isMinimized() )
+        //Handle window event
+        for( int i = 0; i < TOTAL_WINDOWS; ++ i)
         {
-          // Clear screen
-          SDL_SetRenderDrawColor(gRenderer, 0xFF, 0xFF, 0xFF, 0xFF);
-          SDL_RenderClear(gRenderer);
-
-				  //Render prompt centered at the top of the screen
-				  gSceneTexture.render( ( SCREEN_WIDTH - gSceneTexture.getWidth() ) / 2, 0 );
-
-          
-          // Update screen
-          SDL_RenderPresent(gRenderer);
+          gWindows[ i ].handleEvent( e );
         }
+      
+        //Pull up window
+        if( e.type == SDL_KEYDOWN )
+        {
+          switch( e.key.keysym.sym )
+          {
+            case SDLK_1:
+            gWindows[ 0 ].focus();
+            break;
 
+            case SDLK_2:
+            gWindows[ 1 ].focus();
+            break;
+
+            case SDLK_3:
+            gWindows[ 2 ].focus();
+            break;
+          }
+        }
+      }
+      //Update all windows
+      for( int i = 0; i < TOTAL_WINDOWS; ++i )
+      { 
+        gWindows[ i ].render();
       }
 
-      // Disable text input
-      SDL_StopTextInput();
+      //Check all windows
+      bool allWindowsClosed = true;
+      for( int i = 0; i < TOTAL_WINDOWS; ++i )
+      {
+        if ( gWindows[ i ].isShown() )
+        {
+          allWindowsClosed = false;
+          break;
+        }
+      }
+
+      //Application clossed all windows
+      if( allWindowsClosed )
+      {
+        quit = true;
+      }
     }
+
   }
 
   // Free resources and close SDL
