@@ -3,7 +3,6 @@
 #include <SDL_image.h>
 #include <stdio.h>
 #include <string>
-#include <fstream>
 
 //Screen dimension constants
 const int SCREEN_WIDTH = 640;
@@ -19,14 +18,14 @@ class LTexture
 		//Deallocates memory
 		~LTexture();
 
-		//Loads image into a pixel buffer
+		//Loads image at specified path
+		bool loadFromFile( std::string path );
+		
+		//Loads image into pixel buffer
 		bool loadPixelsFromFile( std::string path );
 
 		//Creates image from preloaded pixels
 		bool loadFromPixels();
-		
-		//Loads image from a file
-		bool loadFromFile( std::string path );
 
 		#if defined(SDL_TTF_MAJOR_VERSION)
 		//Creates image from font string
@@ -55,7 +54,7 @@ class LTexture
 		//Pixel accessors
 		Uint32* getPixels32();
 		Uint32 getPitch32();
-		
+
 	private:
 		//The actual hardware texture
 		SDL_Texture* mTexture;
@@ -80,12 +79,11 @@ void close();
 //The window we'll be rendering to
 SDL_Window* gWindow = NULL;
 
-//The window renderergg
+//The window renderer
 SDL_Renderer* gRenderer = NULL;
 
 //Scene textures
 LTexture gFooTexture;
-LTexture gTileTexture;
 
 LTexture::LTexture()
 {
@@ -93,6 +91,8 @@ LTexture::LTexture()
 	mTexture = NULL;
 	mWidth = 0;
 	mHeight = 0;
+
+	mSurfacePixels = NULL;
 }
 
 LTexture::~LTexture()
@@ -101,9 +101,30 @@ LTexture::~LTexture()
 	free();
 }
 
+bool LTexture::loadFromFile( std::string path )
+{
+	//Load pixels
+	if( !loadPixelsFromFile( path ) )
+	{
+		printf( "Failed to load pixels for %s!\n", path.c_str() );
+	}
+	else
+	{
+		//Load texture from pixels
+		if( !loadFromPixels() )
+		{
+			printf( "Failed to texture from pixels from %s!\n", path.c_str() );
+		}
+	}
+
+	//Return success
+	return mTexture != NULL;
+}
+
+
 bool LTexture::loadPixelsFromFile( std::string path )
 {
-	//Get rid of preexisting texture
+	//Free preexisting assets
 	free();
 
 	//Load image at specified path
@@ -115,17 +136,17 @@ bool LTexture::loadPixelsFromFile( std::string path )
 	else
 	{
 		//Convert surface to display format
-		mSurfacePixels = SDL_ConvertSurfaceFormat ( loadedSurface, SDL_GetWindowPixelFormat( gWindow ) , 0);
-	  if( mSurfacePixels == NULL )
-	  {
-	  	printf( "Unable to convert loaded surface to display format! SDL Error: %s\n", SDL_GetError() );
-	  }
-	  else
-	 	{
-	  	//Get image dimensions
-	  	mWidth = mSurfacePixels->w;
-	  	mHeight = mSurfacePixels->h;
-	  }
+		mSurfacePixels = SDL_ConvertSurfaceFormat( loadedSurface, SDL_GetWindowPixelFormat( gWindow ), 0 );
+		if( mSurfacePixels == NULL )
+		{
+			printf( "Unable to convert loaded surface to display format! SDL Error: %s\n", SDL_GetError() );
+		}
+		else
+		{
+			//Get image dimensions
+			mWidth = mSurfacePixels->w;
+			mHeight = mSurfacePixels->h;
+		}
 
 		//Get rid of old loaded surface
 		SDL_FreeSurface( loadedSurface );
@@ -139,50 +160,29 @@ bool LTexture::loadFromPixels()
 	//Only load if pixels exist
 	if( mSurfacePixels == NULL )
 	{
-		printf( "No pixels loaded." );
-		
+		printf( "No pixels loaded!" );
 	}
 	else
 	{
 		//Color key image
 		SDL_SetColorKey( mSurfacePixels, SDL_TRUE, SDL_MapRGB( mSurfacePixels->format, 0, 0xFF, 0xFF) );
 
-		//Creates texture from surface pixels
+		//Create texture from surface pixels
 		mTexture = SDL_CreateTextureFromSurface( gRenderer, mSurfacePixels );
 		if( mTexture == NULL )
-		{ 
+		{
 			printf( "Unable to create texture from loaded pixels! SDL Error: %s\n", SDL_GetError() );
 		}
 		else
 		{
-		  //Get image dimensions
-		  mWidth = mSurfacePixels->w;
+			//Get image dimensions
+			mWidth = mSurfacePixels->w;
 			mHeight = mSurfacePixels->h;
 		}
-	
+
 		//Get rid of old loaded surface
 		SDL_FreeSurface( mSurfacePixels );
 		mSurfacePixels = NULL;
-	}
-
-	//Return success
-	return mTexture != NULL;
-}
-
-bool LTexture::loadFromFile( std::string path )
-{
-	//Load pixels
-	if( !loadPixelsFromFile( path ) )
-	{
-		printf( "Failed to load pixels for %s\n", path.c_str() );
-	}
-	else
-	{
-	  //Load texture from pixels
-	  if( !loadFromPixels() )
-	  {
-	  	printf( "Failed to texture from pixels from %s\n", path.c_str() );
-	  }
 	}
 
 	//Return success
@@ -225,30 +225,6 @@ bool LTexture::loadFromRenderedText( std::string textureText, SDL_Color textColo
 	return mTexture != NULL;
 }
 #endif
-
-Uint32* LTexture::getPixels32()
-{
-	Uint32* pixels = NULL;
-
-	if( mSurfacePixels != NULL )
-	{
-		pixels = static_cast<Uint32*>( mSurfacePixels->pixels );
-	}
-
-	return pixels;
-}
-
-Uint32 LTexture::getPitch32()
-{
-	Uint32 pitch = 0;
-
-	if( mSurfacePixels != NULL)
-	{
-		pitch = mSurfacePixels->pitch / 4;
-	}
-
-	return pitch;
-}
 
 void LTexture::free()
 {
@@ -313,6 +289,30 @@ int LTexture::getHeight()
 	return mHeight;
 }
 
+Uint32* LTexture::getPixels32()
+{
+	Uint32* pixels = NULL;
+
+	if( mSurfacePixels != NULL )
+	{
+		pixels =  static_cast<Uint32*>( mSurfacePixels->pixels );
+	}
+
+	return pixels;
+}
+
+Uint32 LTexture::getPitch32()
+{
+	Uint32 pitch = 0;
+
+	if( mSurfacePixels != NULL )
+	{
+		pitch = mSurfacePixels->pitch / 4;
+	}
+
+	return pitch;
+}
+
 bool init()
 {
 	//Initialization flag
@@ -375,7 +375,7 @@ bool loadMedia()
 	//Load dot texture
 	if( !gFooTexture.loadPixelsFromFile( "Lesson_40/foo.png" ) )
 	{
-		printf( "Failed to load Foo' texture!\n" );
+		printf( "Unable to load Foo' texture!\n" );
 		success = false;
 	}
 	else
@@ -390,7 +390,7 @@ bool loadMedia()
 		
 		Uint32 colorKey = SDL_MapRGBA( SDL_GetWindowSurface( gWindow )->format, 0xFF, 0xFF, 0xFF, 0xFF );
 		Uint32 transparent = SDL_MapRGBA( SDL_GetWindowSurface( gWindow )->format, 0xFF, 0xFF, 0xFF, 0x00 );
-	
+
 		//Color key pixels
 		for( int i = 0; i < pixelCount; ++i )
 		{
@@ -403,9 +403,8 @@ bool loadMedia()
 		//Create texture from manually color keyed pixels
 		if( !gFooTexture.loadFromPixels() )
 		{
-			printf( "Uanble to load Foo' texture from surface\n" );
+			printf( "Unable to load Foo' texture from surface!\n" );
 		}
-
 	}
 
 	return success;
@@ -415,7 +414,7 @@ void close()
 {
 	//Free loaded images
 	gFooTexture.free();
-	
+
 	//Destroy window	
 	SDL_DestroyRenderer( gRenderer );
 	SDL_DestroyWindow( gWindow );
@@ -449,9 +448,6 @@ int main( int argc, char* args[] )
 			//Event handler
 			SDL_Event e;
 
-			//Level camera
-			SDL_Rect camera = { 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT };
-
 			//While application is running
 			while( !quit )
 			{
@@ -464,11 +460,13 @@ int main( int argc, char* args[] )
 						quit = true;
 					}
 				}
-				
+
 				//Clear screen
 				SDL_SetRenderDrawColor( gRenderer, 0xFF, 0xFF, 0xFF, 0xFF );
 				SDL_RenderClear( gRenderer );
 
+				//Render stick figure
+				gFooTexture.render( ( SCREEN_WIDTH - gFooTexture.getWidth() ) / 2, ( SCREEN_HEIGHT - gFooTexture.getHeight() ) / 2 );
 
 				//Update screen
 				SDL_RenderPresent( gRenderer );
