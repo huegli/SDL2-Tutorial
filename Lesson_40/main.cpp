@@ -385,10 +385,11 @@ bool loadMedia()
 		int pixelCount = gFooTexture.getPitch32() * gFooTexture.getHeight();
 
 		//Map colors
-		auto temp = SDL_GetWindowSurface( gWindow );
+		SDL_Surface* temp = SDL_GetWindowSurface( gWindow );
+		printf("Error: %s\n", SDL_GetError());
 		// auto temp = SDL_GetWindowSurface( gWindow )->format;
 		
-		Uint32 colorKey = SDL_MapRGBA( SDL_GetWindowSurface( gWindow )->format, 0xFF, 0xFF, 0xFF, 0xFF );
+		Uint32 colorKey = SDL_MapRGBA( SDL_GetWindowSurface( gWindow )->format, 0xFF, 0x00, 0xFF, 0xFF );
 		Uint32 transparent = SDL_MapRGBA( SDL_GetWindowSurface( gWindow )->format, 0xFF, 0xFF, 0xFF, 0x00 );
 
 		//Color key pixels
