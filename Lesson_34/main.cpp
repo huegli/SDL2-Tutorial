@@ -1,6 +1,5 @@
 // Using  SDL, SDL_image, standard IO, and strings
 #include <SDL.h>
-#include <SDL2/SDL_audio.h>
 #include <SDL_image.h>
 #include <SDL_ttf.h>
 #include <stdio.h>
