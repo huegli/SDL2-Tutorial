@@ -1,0 +1,15 @@
+description "LazyFoo's SDL2-Tutorial - Lesson 4\377";
+
+library(WIN32) "SDL2.lib SDL2main.lib";
+
+library(POSIX) "SDL2 SDL2main";
+
+pkg_config
+	sdl2;
+
+file
+	main.cpp;
+
+mainconfig
+	"" = "GUI";
+

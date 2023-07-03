@@ -1,7 +1,5 @@
-// Using SDL, SDL_image, standard IO, and strings
+// Using SDL, standard IO, and strings
 #include <SDL.h>
-#include <SDL_rect.h>
-#include <SDL_render.h>
 #include <stdio.h>
 #include <string>
 
