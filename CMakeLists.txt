@@ -5,29 +5,25 @@ project(sdl2_tutorials)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_package(SDL2 REQUIRED COMPONENTS SDL2)
+find_package(SDL2_IMAGE REQUIRED COMPONENTS SDL_image)
+find_package(SDL2_TTF REQUIRED COMPONENTS SDL_ttf)
+find_package(SDL2_MIXER REQUIRED COMPONENTS SDL_mixer)
 
-Include(FetchContent)
-
-FetchContent_Declare(
-  SDL_image
-  GIT_REPOSITORY https://github.com/libsdl-org/SDL_image
-  GIT_TAG        release-2.6.3
-)
-FetchContent_MakeAvailable(SDL_image)
-
-FetchContent_Declare(
-  SDL_ttf
-  GIT_REPOSITORY https://github.com/libsdl-org/SDL_ttf
-  GIT_TAG        release-2.20.2
-)
-FetchContent_MakeAvailable(SDL_ttf)
-
-FetchContent_Declare(
-  SDL_mixer
-  GIT_REPOSITORY https://github.com/libsdl-org/SDL_mixer
-  GIT_TAG        release-2.6.3
-)
-FetchContent_MakeAvailable(SDL_mixer)
+# Include(FetchContent)
+#
+# FetchContent_Declare(
+#   SDL_ttf
+#   GIT_REPOSITORY https://github.com/libsdl-org/SDL_ttf
+#   GIT_TAG        release-2.20.2
+# )
+# FetchContent_MakeAvailable(SDL_ttf)
+#
+# FetchContent_Declare(
+#   SDL_mixer
+#   GIT_REPOSITORY https://github.com/libsdl-org/SDL_mixer
+#   GIT_TAG        release-2.6.3
+# )
+# FetchContent_MakeAvailable(SDL_mixer)
 
 add_subdirectory(Lesson_01)
 add_subdirectory(Lesson_02)

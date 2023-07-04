@@ -1,7 +1,6 @@
 // Using SDL, SDL_image, standard IO, and strings
 #include <SDL.h>
 #include <SDL_image.h>
-#include <SDL_render.h>
 #include <stdio.h>
 #include <string>
 
@@ -143,7 +142,6 @@ bool loadMedia();
 
 // Frees media and shuts down SDL
 void close();
-
 
 bool init() {
   // Initialization flag
