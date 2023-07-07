@@ -1,0 +1,10 @@
+[cmake-config]
+  command = "cmake"
+  args = ['-S .', '-B ~/Builds/SDL2-Tutorial', '-DCMAKE_BUILD_TYPE=Debug']
+  isBackground = false
+
+[cmake-build]
+  command = "cmake"
+  args = ['--build ~/Builds/SDL2-Tutorial']
+  isBackground = false
+
