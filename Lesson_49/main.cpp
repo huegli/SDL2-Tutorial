@@ -487,7 +487,7 @@ bool init()
 	return success;
 }
 
-ool loadMedia()
+bool loadMedia()
 {
   //Create the mutex
   gBufferLock = SDL_CreateMutex();
@@ -509,7 +509,7 @@ ool loadMedia()
 	return success;
 }
 
-void close()
+oid close()
 {
 	//Free loaded images
 	gSplashTexture.free();

@@ -82,23 +82,32 @@ class LTexture
 		int mHeight;
 };
 
-//Our worker functions
-int producer( void* data );
-int consumer( void* data );
-void produce();
-void consume();
-
 //Starts up SDL and creates window
 bool init();
 
-//Loads media
-bool loadMedia();
+//Initializes matrices and clear color
+bool initGL();
+
+//Input handler
+void handleKeys( unsigned char key, int x, int y );
+
+//Per frame update
+void update();
+
+//Renders quad to the screen
+void render();
 
 //Frees media and shuts down SDL
 void close();
 
 //The window we'll be rendering to
 SDL_Window* gWindow = NULL;
+
+//OpenGL context
+SDL_GLContext gContext;
+
+//Render flag
+bool gRenderQuad = true;
 
 //The window renderer
 SDL_Renderer* gRenderer = NULL;
@@ -446,14 +455,12 @@ bool init()
 	}
 	else
 	{
-		//Set texture filtering to linear
-		if( !SDL_SetHint( SDL_HINT_RENDER_SCALE_QUALITY, "1" ) )
-		{
-			printf( "Warning: Linear texture filtering not enabled!" );
-		}
+    //Use OpenGL 2.1
+    SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 2);
+    SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 1);
 
 		//Create window
-		gWindow = SDL_CreateWindow( "SDL Tutorial", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN );
+		gWindow = SDL_CreateWindow( "SDL Tutorial", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN );
 		if( gWindow == NULL )
 		{
 			printf( "Window could not be created! SDL Error: %s\n", SDL_GetError() );
