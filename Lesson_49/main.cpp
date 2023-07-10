@@ -487,7 +487,7 @@ bool init()
 	return success;
 }
 
-bool loadMedia()
+ool loadMedia()
 {
   //Create the mutex
   gBufferLock = SDL_CreateMutex();
