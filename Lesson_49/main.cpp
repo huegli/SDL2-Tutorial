@@ -509,7 +509,7 @@ bool loadMedia()
 	return success;
 }
 
-oid close()
+void close()
 {
 	//Free loaded images
 	gSplashTexture.free();

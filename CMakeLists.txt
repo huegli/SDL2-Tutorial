@@ -8,6 +8,7 @@ find_package(SDL2 REQUIRED COMPONENTS SDL2)
 find_package(SDL2_IMAGE REQUIRED COMPONENTS SDL_image)
 find_package(SDL2_TTF REQUIRED COMPONENTS SDL_ttf)
 find_package(SDL2_MIXER REQUIRED COMPONENTS SDL_mixer)
+find_package(OpenGL REQUIRED COMPONENTS OpenGL)
 
 # Include(FetchContent)
 #
@@ -74,3 +75,4 @@ add_subdirectory(Lesson_46)
 add_subdirectory(Lesson_47)
 add_subdirectory(Lesson_48)
 add_subdirectory(Lesson_49)
+add_subdirectory(Lesson_50)
