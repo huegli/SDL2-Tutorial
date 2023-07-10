@@ -1,7 +1,11 @@
 //Using SDL, SDL_image, standard IO, and strings
 #include <SDL.h>
 #include <SDL_opengl.h>
+#if defined(__APPLE__)
 #include <OpenGL/glu.h>
+#else
+#include <GL/glu.h>
+#endif
 #include <stdio.h>
 #include <string>
 
