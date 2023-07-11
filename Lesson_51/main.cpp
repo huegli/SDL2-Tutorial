@@ -1,10 +1,6 @@
 //Using SDL, SDL_image, standard IO, and strings
 #include <SDL.h>
-#if defined(__APPLE__)
-#include <OpenGL/glew.h>
-#else
 #include <GL/glew.h>
-#endif
 #include <SDL_opengl.h>
 #if defined(__APPLE__)
 #include <OpenGL/glu.h>
@@ -130,7 +126,7 @@ bool initGL()
   //Get vertex source
   const GLchar* vertexShaderSource[] =
   {
-    "#Version140\nin vec2 LVertexPos2D; void main() { gl_Position = vec4( LVertexPos2D.x LVertexPos2D.y, 0, 1); }"
+    "#version 140\nin vec2 LVertexPos2D; void main() { gl_Position = vec4( LVertexPos2D.x, LVertexPos2D.y, 0, 1 ); }"
   };
   
   //Set vertex source
