@@ -388,11 +388,14 @@ int main( int argc, char* args[] )
 						quit = true;
 					}
           //Handle keypress with current mouse position
-          else if( e.type == SDL_TEXTINPUT )
+          else 
           {
-            int x = 0, y = 0;
-            SDL_GetMouseState( &x, &y );
-            handleKeys( e.text.text[ 0 ], x, y);
+            if( e.type == SDL_TEXTINPUT )
+            {
+              int x = 0, y = 0;
+              SDL_GetMouseState( &x, &y );
+              handleKeys( e.text.text[ 0 ], x, y);
+            }
           }
 
           //Render quad
